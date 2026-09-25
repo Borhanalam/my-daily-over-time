@@ -1,0 +1,49 @@
+name: Android CI Build
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Unzip Project
+      run: |
+        unzip -q *.zip
+        echo "Searching for build.gradle..."
+        BUILD_PATH=$(find . -name "build.gradle" -not -path "*/app/*" | head -n 1)
+        PROJECT_DIR=$(dirname "$BUILD_PATH")
+        echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+
+    - name: Grant Execute Permission for Gradlew
+      run: |
+        cd $PROJECT_DIR
+        chmod +x gradlew || true
+
+    - name: Build Debug APK
+      run: |
+        cd $PROJECT_DIR
+        if [ -f "./gradlew" ]; then
+          ./gradlew assembleDebug
+        else
+          gradle assembleDebug
+        fi
+
+    - name: Upload Debug APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: AmarOvertime-v1.1-debug-apk
+        path: "**/app/build/outputs/apk/debug/*.apk"
+        
